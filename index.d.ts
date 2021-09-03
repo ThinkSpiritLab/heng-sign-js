@@ -5,7 +5,7 @@ export interface S_AxiosRequestConfig extends AxiosRequestConfig {
     method: Method;
     url: string;
     params?: string | Record<string, string>;
-    data?: string | Record<string, string>;
+    data?: string | Object;
 }
 export interface SignParam {
     method: string;
