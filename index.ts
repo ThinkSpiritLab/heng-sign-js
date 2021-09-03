@@ -92,6 +92,7 @@ function getVal(dict: any, key: string): string | null {
 
 export class Sign {
     private readonly encrypt: EncryptFunction;
+
     constructor(encrypt: EncryptFunction) {
         this.encrypt = encrypt;
     }
@@ -157,10 +158,15 @@ export class Sign {
         }
 
         const host = url
-            .replace(new RegExp(".*://([^/]+).*"), "$1")
+            .replace(new RegExp("(.*://)?([^/]+)(.*)"), "$2")
             .toLowerCase();
 
-        const path = url.split(host, 2)[1] ?? "/";
+        if (!host) {
+            throw new Error("URL format error, host missing");
+        }
+
+        let path = url.replace(new RegExp("(.*://)?([^/]+)(.*)"), "$3");
+        if (!path) path = "/";
 
         let content_type: string;
         if (config.method.toUpperCase() === "GET") {
