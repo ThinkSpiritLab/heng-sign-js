@@ -67,8 +67,11 @@ class Sign {
     }
     generateSign({ method, host, path, query, data, content_type, ak, sk, nonce, timestamp, }) {
         const METHOD = method.toUpperCase();
-        let queryStrings = "";
-        if (typeof query === "string") {
+        let queryStrings = undefined;
+        if (query === undefined) {
+            queryStrings = "";
+        }
+        else if (typeof query === "string") {
             queryStrings = query;
         }
         else {

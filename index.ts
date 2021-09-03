@@ -45,7 +45,7 @@ export interface EncryptFunction {
  * @param dict dict: string -> (string | string[])
  * @returns
  */
-function toLowerCaseSortJoin(dict: any) {
+function toLowerCaseSortJoin(dict: Object) {
     if (typeof dict !== "object") {
         throw new Error("Given dict is not Object");
     }
@@ -111,8 +111,10 @@ export class Sign {
     }: SignParam): string {
         const METHOD = method.toUpperCase();
 
-        let queryStrings = "";
-        if (typeof query === "string") {
+        let queryStrings = undefined;
+        if (query === undefined) {
+            queryStrings = "";
+        } else if (typeof query === "string") {
             queryStrings = query;
         } else {
             queryStrings = toLowerCaseSortJoin(query);
