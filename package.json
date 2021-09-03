@@ -1,0 +1,23 @@
+{
+    "name": "heng-sign-js",
+    "version": "0.0.1",
+    "main": "index.ts",
+    "scripts": {
+        "build": "tsc",
+        "format": "prettier --write external-protocol/*.ts internal-protocol/*.ts index.ts",
+        "check:format": "prettier --check external-protocol/*.ts internal-protocol/*.ts index.ts",
+        "lint": "eslint external-protocol internal-protocol index.ts --fix",
+        "check:lint": "eslint external-protocol internal-protocol index.ts -f codeframe",
+        "prepack": "npm install typescript && npx tsc"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ThinkSpiritLab/heng-sign-js"
+    },
+    "author": "ThinkSpirit Developers",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^0.21.1"
+    },
+    "devDependencies": {}
+}
