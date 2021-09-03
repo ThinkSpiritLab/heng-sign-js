@@ -1,3 +1,7 @@
+import
+
+`npm install heng-sign-js --save`
+
 example
 
 ```ts
