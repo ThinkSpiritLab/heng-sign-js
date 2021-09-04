@@ -1,7 +1,6 @@
 import { AxiosRequestConfig, Method } from "axios";
 
 enum PUBLIC_HEADERS_TYPE {
-    host = "host",
     content_type = "content-type",
     accesskey = "x-heng-accesskey",
     nonce = "x-heng-nonce",
@@ -12,18 +11,15 @@ enum PUBLIC_HEADERS_TYPE {
 export interface S_AxiosRequestConfig extends AxiosRequestConfig {
     ak: string;
     sk: string;
-    method: Method;
-    url: string;
-    params?: string | Record<string, string>;
-    data?: string | Object;
+    // params?: string | Record<string, string>;
+    // data?: string | Object;
 }
 
 export interface SignParam {
     method: string;
-    host: string;
     path: string;
-    query?: string | Object;
-    data?: string | Object;
+    query?: any;
+    data?: any;
     content_type: string;
     ak: string;
     sk: string;
@@ -92,14 +88,15 @@ function getVal(dict: any, key: string): string | null {
 
 export class Sign {
     private readonly encrypt: EncryptFunction;
+    private readonly debug: boolean;
 
-    constructor(encrypt: EncryptFunction) {
+    constructor(encrypt: EncryptFunction, debug = false) {
         this.encrypt = encrypt;
+        this.debug = debug;
     }
 
     generateSign({
         method,
-        host,
         path,
         query,
         data,
@@ -121,7 +118,6 @@ export class Sign {
         }
 
         const header: Record<string, string> = {};
-        header[PUBLIC_HEADERS_TYPE.host] = host;
         header[PUBLIC_HEADERS_TYPE.content_type] = content_type;
         header[PUBLIC_HEADERS_TYPE.accesskey] = ak;
         header[PUBLIC_HEADERS_TYPE.nonce] = nonce;
@@ -131,9 +127,12 @@ export class Sign {
 
         let bodyHash = "";
         if (data === undefined || typeof data === "string") {
+            if (!data) {
+                data = "{}";
+            }
             bodyHash = this.encrypt({
                 algorithm: "SHA256",
-                data: data ?? "{}",
+                data: data,
             });
         } else {
             bodyHash = this.encrypt({
@@ -143,6 +142,7 @@ export class Sign {
         }
 
         const requestString = `${METHOD}\n${path}\n${queryStrings}\n${signedHeaders}\n${bodyHash}\n`;
+        this.debug && console.log(requestString);
 
         const sign = this.encrypt({
             algorithm: "HmacSHA256",
@@ -153,25 +153,22 @@ export class Sign {
     }
 
     sign(config: S_AxiosRequestConfig): AxiosRequestConfig {
-        let { url } = config;
-
-        if (!url.startsWith("http")) {
+        let { url, method } = config;
+        if (!url) {
+            throw new Error("no url provided");
+        }
+        if (!method) {
+            throw new Error("no method provided");
+        }
+        if (!url.startsWith("http") && config.baseURL) {
             url += config.baseURL;
         }
-
-        const host = url
-            .replace(new RegExp("(.*://)?([^/]+)(.*)"), "$2")
-            .toLowerCase();
-
-        if (!host) {
-            throw new Error("URL format error, host missing");
-        }
-
-        let path = url.replace(new RegExp("(.*://)?([^/]+)(.*)"), "$3");
+        url = url.replace(new RegExp("^http(s)?://"), "");
+        let path = url.replace(new RegExp("([^/]*)(.*)"), "$2");
         if (!path) path = "/";
 
         let content_type: string;
-        if (config.method.toUpperCase() === "GET") {
+        if (method.toUpperCase() === "GET") {
             content_type = "";
         } else {
             content_type = "application/json;charset=utf-8";
@@ -181,8 +178,7 @@ export class Sign {
         const timestamp: string = Math.floor(Date.now() / 1000).toString();
 
         const signature = this.generateSign({
-            method: config.method,
-            host,
+            method,
             path,
             query: config.params,
             data: config.data,

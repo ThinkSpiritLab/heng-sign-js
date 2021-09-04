@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Sign = void 0;
 var PUBLIC_HEADERS_TYPE;
 (function (PUBLIC_HEADERS_TYPE) {
-    PUBLIC_HEADERS_TYPE["host"] = "host";
     PUBLIC_HEADERS_TYPE["content_type"] = "content-type";
     PUBLIC_HEADERS_TYPE["accesskey"] = "x-heng-accesskey";
     PUBLIC_HEADERS_TYPE["nonce"] = "x-heng-nonce";
@@ -62,10 +61,11 @@ function getVal(dict, key) {
     return null;
 }
 class Sign {
-    constructor(encrypt) {
+    constructor(encrypt, debug = false) {
         this.encrypt = encrypt;
+        this.debug = debug;
     }
-    generateSign({ method, host, path, query, data, content_type, ak, sk, nonce, timestamp, }) {
+    generateSign({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }) {
         const METHOD = method.toUpperCase();
         let queryStrings = undefined;
         if (query === undefined) {
@@ -78,7 +78,6 @@ class Sign {
             queryStrings = toLowerCaseSortJoin(query);
         }
         const header = {};
-        header[PUBLIC_HEADERS_TYPE.host] = host;
         header[PUBLIC_HEADERS_TYPE.content_type] = content_type;
         header[PUBLIC_HEADERS_TYPE.accesskey] = ak;
         header[PUBLIC_HEADERS_TYPE.nonce] = nonce;
@@ -86,9 +85,12 @@ class Sign {
         const signedHeaders = toLowerCaseSortJoin(header);
         let bodyHash = "";
         if (data === undefined || typeof data === "string") {
+            if (!data) {
+                data = "{}";
+            }
             bodyHash = this.encrypt({
                 algorithm: "SHA256",
-                data: data !== null && data !== void 0 ? data : "{}",
+                data: data,
             });
         }
         else {
@@ -98,6 +100,7 @@ class Sign {
             });
         }
         const requestString = `${METHOD}\n${path}\n${queryStrings}\n${signedHeaders}\n${bodyHash}\n`;
+        this.debug && console.log(requestString);
         const sign = this.encrypt({
             algorithm: "HmacSHA256",
             key: sk,
@@ -106,21 +109,22 @@ class Sign {
         return sign;
     }
     sign(config) {
-        let { url } = config;
-        if (!url.startsWith("http")) {
+        let { url, method } = config;
+        if (!url) {
+            throw new Error("no url provided");
+        }
+        if (!method) {
+            throw new Error("no method provided");
+        }
+        if (!url.startsWith("http") && config.baseURL) {
             url += config.baseURL;
         }
-        const host = url
-            .replace(new RegExp("(.*://)?([^/]+)(.*)"), "$2")
-            .toLowerCase();
-        if (!host) {
-            throw new Error("URL format error, host missing");
-        }
-        let path = url.replace(new RegExp("(.*://)?([^/]+)(.*)"), "$3");
+        url = url.replace(new RegExp("^http(s)?://"), "");
+        let path = url.replace(new RegExp("([^/]*)(.*)"), "$2");
         if (!path)
             path = "/";
         let content_type;
-        if (config.method.toUpperCase() === "GET") {
+        if (method.toUpperCase() === "GET") {
             content_type = "";
         }
         else {
@@ -129,8 +133,7 @@ class Sign {
         const nonce = Math.random().toString();
         const timestamp = Math.floor(Date.now() / 1000).toString();
         const signature = this.generateSign({
-            method: config.method,
-            host,
+            method,
             path,
             query: config.params,
             data: config.data,
