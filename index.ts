@@ -1,6 +1,6 @@
 import { AxiosRequestConfig, Method } from "axios";
 
-enum PUBLIC_HEADERS_TYPE {
+export enum PUBLIC_HEADERS_TYPE {
     content_type = "content-type",
     accesskey = "x-heng-accesskey",
     nonce = "x-heng-nonce",
@@ -82,6 +82,8 @@ function getVal(dict: any, key: string): string | null {
         }
     } else if (typeof val === "string") {
         return val;
+    } else if (typeof val === "number") {
+        return val.toString();
     }
     return null;
 }

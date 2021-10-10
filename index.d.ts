@@ -1,4 +1,11 @@
 import { AxiosRequestConfig } from "axios";
+export declare enum PUBLIC_HEADERS_TYPE {
+    content_type = "content-type",
+    accesskey = "x-heng-accesskey",
+    nonce = "x-heng-nonce",
+    signature = "x-heng-signature",
+    timestamp = "x-heng-timestamp"
+}
 export interface S_AxiosRequestConfig extends AxiosRequestConfig {
     ak: string;
     sk: string;

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Sign = void 0;
+exports.Sign = exports.PUBLIC_HEADERS_TYPE = void 0;
 var PUBLIC_HEADERS_TYPE;
 (function (PUBLIC_HEADERS_TYPE) {
     PUBLIC_HEADERS_TYPE["content_type"] = "content-type";
@@ -8,7 +8,7 @@ var PUBLIC_HEADERS_TYPE;
     PUBLIC_HEADERS_TYPE["nonce"] = "x-heng-nonce";
     PUBLIC_HEADERS_TYPE["signature"] = "x-heng-signature";
     PUBLIC_HEADERS_TYPE["timestamp"] = "x-heng-timestamp";
-})(PUBLIC_HEADERS_TYPE || (PUBLIC_HEADERS_TYPE = {}));
+})(PUBLIC_HEADERS_TYPE = exports.PUBLIC_HEADERS_TYPE || (exports.PUBLIC_HEADERS_TYPE = {}));
 /**
  * @param dict dict: string -> (string | string[])
  * @returns
@@ -57,6 +57,9 @@ function getVal(dict, key) {
     }
     else if (typeof val === "string") {
         return val;
+    }
+    else if (typeof val === "number") {
+        return val.toString();
     }
     return null;
 }
