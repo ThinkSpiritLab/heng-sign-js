@@ -127,7 +127,7 @@ class Sign {
         if (!path)
             path = "/";
         let content_type;
-        if (method.toUpperCase() === "GET") {
+        if (method.toUpperCase() === "GET" || config.data === undefined) {
             content_type = "";
         }
         else {

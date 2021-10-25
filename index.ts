@@ -170,7 +170,7 @@ export class Sign {
         if (!path) path = "/";
 
         let content_type: string;
-        if (method.toUpperCase() === "GET") {
+        if (method.toUpperCase() === "GET" || config.data === undefined) {
             content_type = "";
         } else {
             content_type = "application/json;charset=utf-8";
