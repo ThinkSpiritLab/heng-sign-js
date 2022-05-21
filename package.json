@@ -1,6 +1,6 @@
 {
     "name": "heng-sign-js",
-    "version": "0.0.17",
+    "version": "0.0.18",
     "main": "index.js",
     "scripts": {
         "build": "tsc",
@@ -16,10 +16,9 @@
     "author": "ThinkSpirit Developers",
     "license": "MIT",
     "dependencies": {
-        "axios": "^0.21.1",
-        "typescript": "^4.4.2"
+        "axios": "^0.27.2",
+        "typescript": "^4.6.4"
     },
-    "devDependencies": {},
     "bugs": {
         "url": "https://github.com/ThinkSpiritLab/heng-sign-js/issues"
     },
