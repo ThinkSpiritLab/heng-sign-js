@@ -64,99 +64,100 @@ function getVal(dict, key) {
     return null;
 }
 class Sign {
-    constructor(encrypt, debug = false) {
-        this.encrypt = encrypt;
-        this.debug = debug;
-    }
-    generateSign({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }) {
-        const METHOD = method.toUpperCase();
-        let queryStrings = undefined;
-        if (query === undefined) {
-            queryStrings = "";
-        }
-        else if (typeof query === "string") {
-            queryStrings = query;
-        }
-        else {
-            queryStrings = toLowerCaseSortJoin(query);
-        }
-        const header = {};
-        header[PUBLIC_HEADERS_TYPE.content_type] = content_type;
-        header[PUBLIC_HEADERS_TYPE.accesskey] = ak;
-        header[PUBLIC_HEADERS_TYPE.nonce] = nonce;
-        header[PUBLIC_HEADERS_TYPE.timestamp] = timestamp;
-        const signedHeaders = toLowerCaseSortJoin(header);
-        let bodyHash = "";
-        if (data === undefined || typeof data === "string") {
-            if (!data) {
-                data = "{}";
+    constructor(encrypt, ak, sk, debug = false) {
+        this.generateSign = ({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }) => {
+            const METHOD = method.toUpperCase();
+            let queryStrings = undefined;
+            if (query === undefined) {
+                queryStrings = "";
             }
-            bodyHash = this.encrypt({
-                algorithm: "SHA256",
-                data: data,
+            else if (typeof query === "string") {
+                queryStrings = query;
+            }
+            else {
+                queryStrings = toLowerCaseSortJoin(query);
+            }
+            const header = {};
+            header[PUBLIC_HEADERS_TYPE.content_type] = content_type;
+            header[PUBLIC_HEADERS_TYPE.accesskey] = ak;
+            header[PUBLIC_HEADERS_TYPE.nonce] = nonce;
+            header[PUBLIC_HEADERS_TYPE.timestamp] = timestamp;
+            const signedHeaders = toLowerCaseSortJoin(header);
+            let bodyHash = "";
+            if (data === undefined || typeof data === "string") {
+                // server only receive json, so "" => "{}", undefined => "{}"
+                // "." => 400 Unexpected token . in JSON at position 0
+                if (!data) {
+                    data = "{}";
+                }
+                bodyHash = this.encrypt.SHA256(data);
+            }
+            else {
+                bodyHash = this.encrypt.SHA256(JSON.stringify(data));
+            }
+            const requestString = `${METHOD}\n${path}\n${queryStrings}\n${signedHeaders}\n${bodyHash}\n`;
+            this.debug && console.log(requestString);
+            const sign = this.encrypt.HmacSHA256(sk, requestString);
+            return sign;
+        };
+        this.sign = (config) => {
+            var _a, _b;
+            const ak = (_a = config.ak) !== null && _a !== void 0 ? _a : this.ak;
+            const sk = (_b = config.sk) !== null && _b !== void 0 ? _b : this.sk;
+            if (ak === undefined || sk === undefined) {
+                throw new Error("No ak/sk provided");
+            }
+            let { url } = config;
+            const { method } = config;
+            if (!url) {
+                throw new Error("No url provided");
+            }
+            if (!method) {
+                throw new Error("No method provided");
+            }
+            if (!url.startsWith("http") && config.baseURL) {
+                url += config.baseURL;
+            }
+            url = url.replace(new RegExp("^http(s)?://"), "");
+            let path = url.replace(new RegExp("([^/]*)(.*)"), "$2");
+            if (!path)
+                path = "/";
+            let content_type;
+            if (method.toUpperCase() === "GET" || config.data === undefined) {
+                content_type = "";
+            }
+            else {
+                content_type = "application/json;charset=utf-8";
+            }
+            const nonce = Math.random().toString();
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = this.generateSign({
+                method,
+                path,
+                query: config.params,
+                data: config.data,
+                content_type,
+                ak,
+                sk,
+                nonce,
+                timestamp,
             });
-        }
-        else {
-            bodyHash = this.encrypt({
-                algorithm: "SHA256",
-                data: JSON.stringify(data),
-            });
-        }
-        const requestString = `${METHOD}\n${path}\n${queryStrings}\n${signedHeaders}\n${bodyHash}\n`;
-        this.debug && console.log(requestString);
-        const sign = this.encrypt({
-            algorithm: "HmacSHA256",
-            key: sk,
-            data: requestString,
-        });
-        return sign;
-    }
-    sign(config) {
-        let { url, method } = config;
-        if (!url) {
-            throw new Error("no url provided");
-        }
-        if (!method) {
-            throw new Error("no method provided");
-        }
-        if (!url.startsWith("http") && config.baseURL) {
-            url += config.baseURL;
-        }
-        url = url.replace(new RegExp("^http(s)?://"), "");
-        let path = url.replace(new RegExp("([^/]*)(.*)"), "$2");
-        if (!path)
-            path = "/";
-        let content_type;
-        if (method.toUpperCase() === "GET" || config.data === undefined) {
-            content_type = "";
-        }
-        else {
-            content_type = "application/json;charset=utf-8";
-        }
-        const nonce = Math.random().toString();
-        const timestamp = Math.floor(Date.now() / 1000).toString();
-        const signature = this.generateSign({
-            method,
-            path,
-            query: config.params,
-            data: config.data,
-            content_type,
-            ak: config.ak,
-            sk: config.sk,
-            nonce,
-            timestamp,
-        });
-        if (config.headers === undefined) {
-            config.headers = {};
-        }
-        config.headers[PUBLIC_HEADERS_TYPE.accesskey] = config.ak;
-        config.headers[PUBLIC_HEADERS_TYPE.content_type] = content_type;
-        config.headers[PUBLIC_HEADERS_TYPE.nonce] = nonce;
-        config.headers[PUBLIC_HEADERS_TYPE.timestamp] = timestamp;
-        config.headers[PUBLIC_HEADERS_TYPE.signature] = signature;
-        config.ak = "";
-        config.sk = "";
-        return config;
+            if (config.headers === undefined) {
+                config.headers = {};
+            }
+            config.headers[PUBLIC_HEADERS_TYPE.accesskey] = ak;
+            config.headers[PUBLIC_HEADERS_TYPE.content_type] = content_type;
+            config.headers[PUBLIC_HEADERS_TYPE.nonce] = nonce;
+            config.headers[PUBLIC_HEADERS_TYPE.timestamp] = timestamp;
+            config.headers[PUBLIC_HEADERS_TYPE.signature] = signature;
+            delete config.ak;
+            delete config.sk;
+            return config;
+        };
+        this.encrypt = encrypt;
+        this.ak = ak;
+        this.sk = sk;
+        this.debug = debug;
     }
 }
 exports.Sign = Sign;

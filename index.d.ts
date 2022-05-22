@@ -7,8 +7,8 @@ export declare enum PUBLIC_HEADERS_TYPE {
     timestamp = "x-heng-timestamp"
 }
 export interface S_AxiosRequestConfig extends AxiosRequestConfig {
-    ak: string;
-    sk: string;
+    ak?: string;
+    sk?: string;
 }
 export interface SignParam {
     method: string;
@@ -21,18 +21,16 @@ export interface SignParam {
     nonce: string;
     timestamp: string;
 }
-export interface EncryptParam {
-    algorithm: "SHA256" | "HmacSHA256";
-    data: string;
-    key?: string;
-}
-export interface EncryptFunction {
-    (param: EncryptParam): string;
+export interface Encrypt {
+    SHA256(data: string): string;
+    HmacSHA256(key: string, data: string): string;
 }
 export declare class Sign {
     private readonly encrypt;
+    private readonly ak?;
+    private readonly sk?;
     private readonly debug;
-    constructor(encrypt: EncryptFunction, debug?: boolean);
-    generateSign({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }: SignParam): string;
-    sign(config: S_AxiosRequestConfig): AxiosRequestConfig;
+    constructor(encrypt: Encrypt, ak?: string, sk?: string, debug?: boolean);
+    generateSign: ({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }: SignParam) => string;
+    sign: (config: S_AxiosRequestConfig) => AxiosRequestConfig;
 }

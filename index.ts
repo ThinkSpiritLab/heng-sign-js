@@ -1,4 +1,4 @@
-import { AxiosRequestConfig, Method } from "axios";
+import { AxiosRequestConfig } from "axios";
 
 export enum PUBLIC_HEADERS_TYPE {
     content_type = "content-type",
@@ -9,8 +9,8 @@ export enum PUBLIC_HEADERS_TYPE {
 }
 
 export interface S_AxiosRequestConfig extends AxiosRequestConfig {
-    ak: string;
-    sk: string;
+    ak?: string;
+    sk?: string;
     // params?: string | Record<string, string>;
     // data?: string | Object;
 }
@@ -27,21 +27,16 @@ export interface SignParam {
     timestamp: string;
 }
 
-export interface EncryptParam {
-    algorithm: "SHA256" | "HmacSHA256";
-    data: string;
-    key?: string;
-}
-
-export interface EncryptFunction {
-    (param: EncryptParam): string;
+export interface Encrypt {
+    SHA256(data: string): string;
+    HmacSHA256(key: string, data: string): string;
 }
 
 /**
  * @param dict dict: string -> (string | string[])
  * @returns
  */
-function toLowerCaseSortJoin(dict: Object) {
+function toLowerCaseSortJoin(dict: Record<string, unknown>) {
     if (typeof dict !== "object") {
         throw new Error("Given dict is not Object");
     }
@@ -72,7 +67,7 @@ function toLowerCaseSortJoin(dict: Object) {
  * @param key string
  * @returns
  */
-function getVal(dict: any, key: string): string | null {
+function getVal(dict: Record<string, unknown>, key: string): string | null {
     const val = dict[key];
     if (val === undefined) {
         return null;
@@ -89,15 +84,19 @@ function getVal(dict: any, key: string): string | null {
 }
 
 export class Sign {
-    private readonly encrypt: EncryptFunction;
+    private readonly encrypt: Encrypt;
+    private readonly ak?: string;
+    private readonly sk?: string;
     private readonly debug: boolean;
 
-    constructor(encrypt: EncryptFunction, debug = false) {
+    constructor(encrypt: Encrypt, ak?: string, sk?: string, debug = false) {
         this.encrypt = encrypt;
+        this.ak = ak;
+        this.sk = sk;
         this.debug = debug;
     }
 
-    generateSign({
+    generateSign = ({
         method,
         path,
         query,
@@ -107,7 +106,7 @@ export class Sign {
         sk,
         nonce,
         timestamp,
-    }: SignParam): string {
+    }: SignParam): string => {
         const METHOD = method.toUpperCase();
 
         let queryStrings = undefined;
@@ -129,38 +128,36 @@ export class Sign {
 
         let bodyHash = "";
         if (data === undefined || typeof data === "string") {
+            // server only receive json, so "" => "{}", undefined => "{}"
+            // "." => 400 Unexpected token . in JSON at position 0
             if (!data) {
                 data = "{}";
             }
-            bodyHash = this.encrypt({
-                algorithm: "SHA256",
-                data: data,
-            });
+            bodyHash = this.encrypt.SHA256(data);
         } else {
-            bodyHash = this.encrypt({
-                algorithm: "SHA256",
-                data: JSON.stringify(data),
-            });
+            bodyHash = this.encrypt.SHA256(JSON.stringify(data));
         }
 
         const requestString = `${METHOD}\n${path}\n${queryStrings}\n${signedHeaders}\n${bodyHash}\n`;
         this.debug && console.log(requestString);
 
-        const sign = this.encrypt({
-            algorithm: "HmacSHA256",
-            key: sk,
-            data: requestString,
-        });
+        const sign = this.encrypt.HmacSHA256(sk, requestString);
         return sign;
-    }
+    };
 
-    sign(config: S_AxiosRequestConfig): AxiosRequestConfig {
-        let { url, method } = config;
+    sign = (config: S_AxiosRequestConfig): AxiosRequestConfig => {
+        const ak = config.ak ?? this.ak;
+        const sk = config.sk ?? this.sk;
+        if (ak === undefined || sk === undefined) {
+            throw new Error("No ak/sk provided");
+        }
+        let { url } = config;
+        const { method } = config;
         if (!url) {
-            throw new Error("no url provided");
+            throw new Error("No url provided");
         }
         if (!method) {
-            throw new Error("no method provided");
+            throw new Error("No method provided");
         }
         if (!url.startsWith("http") && config.baseURL) {
             url += config.baseURL;
@@ -185,8 +182,8 @@ export class Sign {
             query: config.params,
             data: config.data,
             content_type,
-            ak: config.ak,
-            sk: config.sk,
+            ak,
+            sk,
             nonce,
             timestamp,
         });
@@ -194,15 +191,15 @@ export class Sign {
         if (config.headers === undefined) {
             config.headers = {};
         }
-        config.headers[PUBLIC_HEADERS_TYPE.accesskey] = config.ak;
+        config.headers[PUBLIC_HEADERS_TYPE.accesskey] = ak;
         config.headers[PUBLIC_HEADERS_TYPE.content_type] = content_type;
         config.headers[PUBLIC_HEADERS_TYPE.nonce] = nonce;
         config.headers[PUBLIC_HEADERS_TYPE.timestamp] = timestamp;
         config.headers[PUBLIC_HEADERS_TYPE.signature] = signature;
 
-        config.ak = "";
-        config.sk = "";
+        delete config.ak;
+        delete config.sk;
 
         return config;
-    }
+    };
 }
