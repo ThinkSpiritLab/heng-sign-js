@@ -8,13 +8,13 @@ module.exports = {
     },
     plugins: ["@typescript-eslint"],
     extends: [
+        "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
         "plugin:prettier/recommended",
     ],
     root: true,
     env: {
         node: true,
-        jest: true,
     },
     rules: {
         "no-unused-vars": "off",
