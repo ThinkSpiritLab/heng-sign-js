@@ -13,8 +13,8 @@ export interface S_AxiosRequestConfig extends AxiosRequestConfig {
 export interface SignParam {
     method: string;
     path: string;
-    query?: any;
-    data?: any;
+    query?: unknown;
+    data?: unknown;
     content_type: string;
     ak: string;
     sk: string;
@@ -31,6 +31,6 @@ export declare class Sign {
     private readonly sk?;
     private readonly debug;
     constructor(encrypt: Encrypt, ak?: string, sk?: string, debug?: boolean);
-    generateSign: ({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }: SignParam) => string;
-    sign: (config: S_AxiosRequestConfig) => AxiosRequestConfig;
+    generateSign({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }: SignParam): string;
+    sign(config: S_AxiosRequestConfig): AxiosRequestConfig;
 }
