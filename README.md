@@ -33,7 +33,7 @@ axios.request(
         data,
         ak,
         sk,
-    })
+    }),
 );
 ```
 

@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Sign = exports.PUBLIC_HEADERS_TYPE = void 0;
-var PUBLIC_HEADERS_TYPE;
+export var PUBLIC_HEADERS_TYPE;
 (function (PUBLIC_HEADERS_TYPE) {
     PUBLIC_HEADERS_TYPE["content_type"] = "content-type";
     PUBLIC_HEADERS_TYPE["accesskey"] = "x-heng-accesskey";
     PUBLIC_HEADERS_TYPE["nonce"] = "x-heng-nonce";
     PUBLIC_HEADERS_TYPE["signature"] = "x-heng-signature";
     PUBLIC_HEADERS_TYPE["timestamp"] = "x-heng-timestamp";
-})(PUBLIC_HEADERS_TYPE = exports.PUBLIC_HEADERS_TYPE || (exports.PUBLIC_HEADERS_TYPE = {}));
+})(PUBLIC_HEADERS_TYPE || (PUBLIC_HEADERS_TYPE = {}));
 /**
  * @param dict dict: string -> (string | string[])
  * @returns
@@ -63,7 +60,7 @@ function getVal(dict, key) {
     }
     return null;
 }
-class Sign {
+export class Sign {
     constructor(encrypt, ak, sk, debug = false) {
         this.generateSign = ({ method, path, query, data, content_type, ak, sk, nonce, timestamp, }) => {
             const METHOD = method.toUpperCase();
@@ -160,4 +157,3 @@ class Sign {
         this.debug = debug;
     }
 }
-exports.Sign = Sign;
